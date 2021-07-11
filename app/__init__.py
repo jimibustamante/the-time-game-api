@@ -33,12 +33,13 @@ def create_app():
 
     with app.app_context():
         try:
-            db.drop_all()
+            # db.drop_all()
             db.create_all()
-            create_themes()
+            # create_themes()
             app.register_blueprint(api)
         except Exception as e:
             print(f'ERROR: {e}')
 
 
         return app
+

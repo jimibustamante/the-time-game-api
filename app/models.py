@@ -52,6 +52,7 @@ class Question(db.Model):
     completed = db.Column(db.Boolean, default=False)
     game_id = db.Column(db.Integer, db.ForeignKey('game.id'))
     options = db.relationship('Option', backref='question', lazy=True)
+    answer = db.relationship('Answer', backref='question', lazy=True)
 
     def to_json(self):
         return {
@@ -71,6 +72,8 @@ class Option(db.Model):
     fact_id = db.Column(db.Integer, db.ForeignKey('fact.id'))
     question_id = db.Column(db.Integer, db.ForeignKey('question.id'))
     is_answer = db.Column(db.Boolean, default=False)
+    answer = db.relationship('Answer', backref='option', lazy=True)
+    
 
     def __repr__(self):
         return '<Option %r>' % self.fact.year
@@ -82,6 +85,21 @@ class Option(db.Model):
             'is_answer': self.is_answer,
         }
 
+
+class Answer(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    question_id = db.Column(db.Integer, db.ForeignKey('question.id'))
+    option_id = db.Column(db.Integer, db.ForeignKey('option.id'))
+    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+
+    def __repr__(self):
+        return '<Answer %r>' % self.option.fact.name
+
+    def to_json(self):
+        return {
+            'id': self.id,
+            'is_correct': self.option.is_answer,
+        }
 class Fact(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String, nullable=False)

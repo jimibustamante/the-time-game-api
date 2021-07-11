@@ -21,9 +21,6 @@ XPATH_YEAR = './th/a/text()'
 XPATH_INFO_LINK = './th/a/@href'
 
 
-# db = firestore.client()
-
-
 def run():
     try:
         conn = psycopg2.connect(database=database_name, user=database_user, password=database_password, host=database_uri, port=database_port)

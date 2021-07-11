@@ -143,3 +143,5 @@ app/.DS_Store
 .DS_Store
 app/firebaseConfig.json
 servicesAccountKey.json
+
+*.csv

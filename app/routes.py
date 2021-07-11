@@ -3,7 +3,7 @@ from .extensions import db
 from flask import Blueprint, request, jsonify, make_response
 import firebase_admin
 from firebase_admin import credentials, auth
-from .models import User, Theme, Game, Fact, Question, Option
+from .models import User, Theme, Game, Fact, Question, Option, Answer
 
 cred = credentials.Certificate('./servicesAccountKey.json')
 firebase_admin.initialize_app(cred)
@@ -142,4 +142,34 @@ def new_game():
         except Exception as error:
             print(f'ERROR: {error}')
             return 'Something went wrong', 500
+
+
+@api.route('/api/questions/answer', methods=['POST'])
+def answer():
+    if validate_token():
+        try:
+            params = request.get_json()
+            questionId = params['questionId']
+            optionId = params['optionId']
+            print(f'questionId => {questionId}')
+            print(f'optionId => {optionId}')
+            question = Question.query.filter_by(id=questionId).first()
+            option = Option.query.filter_by(id=optionId).first()
+            print(f'question => {question}')
+            print(f'option => {option}')
+            answer = Answer(question_id=questionId, option_id=optionId)
+            db.session.add(answer)
+            db.session.commit()
+            print(f'answer => {answer}')
+            response = {
+                'status': 'success',
+                'message': 'Answer added.',
+                'answer': answer.to_json(),
+            }
+            return make_response(jsonify(response)), 200
+
+        except Exception as error:
+            print(f'ERROR: {error}')
+            return 'Something went wrong', 500
+
 
