@@ -4,17 +4,33 @@ from flask import current_app
 from .extensions import db
 
 class Game(db.Model):
-    # __tablename__ = 'game'
+    """
+    A game is a single instance of a game based on a theme.
+    """
     id = db.Column(db.Integer, primary_key=True)
+    questions = db.relationship('Question', backref='game', lazy='dynamic')
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     theme_id = db.Column(db.Integer, db.ForeignKey('theme.id'))
+    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+    def __repr__(self):
+        return '<Game %r>' % self.user_id
+
+    def to_json(self):
+        return {
+            'id': self.id,
+            'questions': [question.to_json() for question in self.questions]
+        }
+
 
 class Theme(db.Model):
-    # __tablename__ = 'theme'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String, unique=True, nullable=False)
     title = db.Column(db.String, unique=True, nullable=False)
     games = db.relationship('Game', backref='theme', lazy=True)
+    facts = db.relationship('Fact', backref='theme', lazy=True)
+
 
     def __init__(self, name, title):
         self.name = name
@@ -30,8 +46,64 @@ class Theme(db.Model):
             'title': self.title,
         }
 
+class Question(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    text = db.Column(db.String, nullable=False)
+    completed = db.Column(db.Boolean, default=False)
+    game_id = db.Column(db.Integer, db.ForeignKey('game.id'))
+    options = db.relationship('Option', backref='question', lazy=True)
+
+    def to_json(self):
+        return {
+            'id': self.id,
+            'text': self.text,
+            'completed': self.completed,
+            'options': [option.to_json() for option in self.options]
+        }
+
+    @staticmethod
+    def define_answer(options):
+        return sorted(options, key=lambda option: option.fact.year)[0]
+
+
+class Option(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    fact_id = db.Column(db.Integer, db.ForeignKey('fact.id'))
+    question_id = db.Column(db.Integer, db.ForeignKey('question.id'))
+    is_answer = db.Column(db.Boolean, default=False)
+
+    def __repr__(self):
+        return '<Option %r>' % self.fact.year
+
+    def to_json(self):
+        return {
+            'id': self.id,
+            'fact': self.fact.to_json(),
+            'is_answer': self.is_answer,
+        }
+
+class Fact(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String, nullable=False)
+    description = db.Column(db.String, nullable=False)
+    year = db.Column(db.Integer, nullable=False)
+    info_link = db.Column(db.String, nullable=False)
+    options = db.relationship('Option', backref='fact', lazy=True)
+    theme_id = db.Column(db.Integer, db.ForeignKey('theme.id'))
+
+    def __repr__(self):
+        return '<Fact %r>' % self.name
+    
+    def to_json(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'description': self.description,
+            'year': self.year,
+            'info_link': self.info_link,
+        }
+
 class User(db.Model):
-    # __tablename__ = 'user'
     id = db.Column(db.Integer, primary_key=True)
     uid = db.Column(db.String, unique=True)
     email = db.Column(db.String(254), unique=True)
@@ -39,9 +111,13 @@ class User(db.Model):
     photoURL = db.Column(db.String)
     providerId = db.Column(db.String)
     games = db.relationship('Game', backref='user', lazy=True)
-
+    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
     def __init__(self, uid, providerId, photoURL, username, email):
+        """
+        Initializes the User object
+        """
         self.uid = uid
         self.providerId = providerId
         self.photoURL = photoURL
@@ -49,6 +125,10 @@ class User(db.Model):
         self.email = email
 
     def __repr__(self):
+        """
+        String representation of the User object
+        :return: string
+        """
         return '<User %r>' % self.username
 
     def encode_auth_token(self, user_id):
@@ -72,6 +152,10 @@ class User(db.Model):
 
 
     def to_json(self):
+        """
+        Serializes the User object to JSON
+        :return: string
+        """
         return {
             'id': self.id,
             'uid': self.uid,
@@ -89,7 +173,6 @@ class User(db.Model):
         :return: integer|string
         """
         try:
-            # print(f'auth_token => {auth_token}')
             payload = jwt.decode(
                 auth_token,
                 options={"verify_signature": False},

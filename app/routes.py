@@ -1,8 +1,9 @@
+import random
 from .extensions import db
 from flask import Blueprint, request, jsonify, make_response
 import firebase_admin
 from firebase_admin import credentials, auth
-from .models import User, Theme
+from .models import User, Theme, Game, Fact, Question, Option
 
 cred = credentials.Certificate('./servicesAccountKey.json')
 firebase_admin.initialize_app(cred)
@@ -10,9 +11,57 @@ firebase_admin.initialize_app(cred)
 api = Blueprint('api', __name__)
 
 
+"""
+Generates a list of questions for a game according to the theme id
+"""
+def generate_game_questions(theme_id, game_id):
+    facts = Fact.query.filter_by(theme_id=theme_id).all()
+    questions_len = round(len(facts) / 2)
+
+    for i in range(questions_len):
+        question = Question(text='¿Qué fue primero?', game_id=game_id)
+        db.session.add(question)
+        db.session.commit()
+        facts_options = random.sample(facts, 2)
+        for fact in facts_options:
+            option = Option(fact_id=fact.id, question_id=question.id, is_answer=False)
+            db.session.add(option)
+            db.session.commit()
+            facts.remove(fact)
+        
+        answer = Question.define_answer(question.options)        
+        answer.is_answer = True
+        db.session.add(answer)
+        db.session.commit()
+        
+
+def validate_token():
+    try:
+        authorization = request.headers.get('Authorization')
+        if authorization:
+            auth_token = authorization.split(' ')[1]
+            return User.decode_auth_token(auth_token=auth_token)
+        else:
+            response = {
+                'status': 'fail',
+                'message': 'Unauthorized',
+            }
+            return make_response(jsonify(response)), 403
+    except Exception as e:
+        print(e)
+        response = {
+            'status': 'fail',
+            'message': 'Unauthorized',
+        }
+        return make_response(jsonify(response)), 403
+
+
 @api.route('/api/sign-in', methods=['POST'])
 def sign_in():
-    # print(f'REQUEST: {request.get_json()}')
+    """
+    Sign in user route. If everything is ok, returns a json with the user and an access token.
+    """
+
     params = request.get_json()
     uid = params['uid']
     username = params['username']
@@ -23,25 +72,18 @@ def sign_in():
 
     try:
         response = auth.verify_id_token(id_token=accessToken, check_revoked=True)
-        # print(f'\n\nRESPONSE =>{response}\n\n')
         user = User.query.filter_by(email=email).first()
-        print(f'USER => {user}')
 
         if not user:
             try:
                 user = User(uid=uid, username=username, email=email, photoURL=photoURL, providerId=providerId)
                 db.session.add(user)
                 db.session.commit()
-                print(f'USER => {user}')
             except Exception as e:
-                print('ERRRRRRRRRRRORRRRRRR !!!')
-                response = {
-                    'status': 'fail',
-                    'message': 'Some error curred. Please try again.'
-                }
-                return make_response(jsonify(response)), 401
+                print(f'ERROR => {e}')
+                return make_response(jsonify({'error': 'Something went wrong.'}), 401)
+
         auth_token = user.encode_auth_token(user.id)
-        # print(auth_token)
         response = {
             'status': 'success',
             'message': 'Succeesfully logged in.',
@@ -58,31 +100,46 @@ def sign_in():
 
 @api.route('/api/themes')
 def themes():
-    authorization = request.headers.get('Authorization')
-    print(f'authorization => {authorization}')
     try:
-        if authorization:
-            auth_token = authorization.split(' ')[1]
-            resp = User.decode_auth_token(auth_token=auth_token)
-            # print(f'resp => {resp}')
-            if resp:
-                themes = Theme.query.all()
-                users = User.query.all()
-                print(f'USER => {users}')
-                print(f'THEMES => {themes}')
-                response = {
-                    'status': 'success',
-                    'themes': [theme.to_json() for theme in themes],
-                }
-                # result = [theme.to_json() for theme in themes]
-                return make_response(jsonify(response)), 200
-            else:
-                response = {
-                    'status': 'fail',
-                    'message': 'Unauthorized',
-                }
-                return make_response(jsonify(response)), 403
+        if validate_token():
+            themes = Theme.query.all()
+            users = User.query.all()
+            response = {
+                'status': 'success',
+                'themes': [theme.to_json() for theme in themes],
+            }
+            return make_response(jsonify(response)), 200
 
     except Exception as error:
         print(f'ERROR: {error}')
         return 'Something went wrong', 500
+
+@api.route('/api/games/new', methods=['POST'])
+def new_game():
+    """
+    Create a new game route.
+    """
+    if validate_token():
+        params = request.get_json()
+        userId = params['userId']
+        themeId = params['themeId']
+        print(f'userId => {userId}')
+        print(f'themeId => {themeId}')
+
+        try:
+            game = Game(user_id=userId, theme_id=themeId)
+            db.session.add(game)
+            db.session.commit()
+            generate_game_questions(themeId, game.id)
+
+            response = {
+                'status': 'success',
+                'message': 'Game created.',
+                'game': game.to_json(),
+            }
+            return make_response(jsonify(response)), 200
+
+        except Exception as error:
+            print(f'ERROR: {error}')
+            return 'Something went wrong', 500
+
