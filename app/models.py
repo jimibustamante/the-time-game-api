@@ -1,4 +1,5 @@
 import datetime
+import itertools
 import jwt
 from flask import current_app
 from .extensions import db
@@ -8,20 +9,53 @@ class Game(db.Model):
     A game is a single instance of a game based on a theme.
     """
     id = db.Column(db.Integer, primary_key=True)
+    completed = db.Column(db.Boolean, default=False)
     questions = db.relationship('Question', backref='game', lazy='dynamic')
+    max_questions = db.Column(db.Integer, default=20)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     theme_id = db.Column(db.Integer, db.ForeignKey('theme.id'))
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
+    def set_max_questions(self):
+        facts = Fact.query.filter_by(theme_id=self.theme_id).all()
+        questions_len = round(len(facts) / 2)
+        self.max_questions = questions_len
+        db.session.commit()
+
+    def current_question(self):
+        return self.questions.filter(Question.completed == False).first()
+
     def __repr__(self):
-        return '<Game %r>' % self.user_id
+        return '<Game %r>' % self.id
 
     def to_json(self):
+        question = self.questions.filter(Question.completed == False).first()
+        if question:
+            question = question.to_json()
+
         return {
             'id': self.id,
-            'questions': [question.to_json() for question in self.questions]
+            'max_questions': self.max_questions,
+            'completed': self.completed,
+            'question': question,
+            'questions_completed': self.questions.filter(Question.completed == True).count()
         }
+
+    def summary_to_json(self):
+        complited_questions = self.questions.filter(Question.completed == True).all()
+        answers = list(map(lambda q: q.answer, complited_questions))
+        answers = itertools.chain(*answers)
+        answers_options = list(map(lambda a: a.option, answers))
+        correct_answers = list(filter(lambda a: a.is_answer, answers_options))
+        return {
+            'id': self.id,
+            'total_questions': self.max_questions,
+            'complited_questions': len(complited_questions),
+            'correct_answers_count': len(correct_answers),
+            'wrong_answers_count': len(complited_questions) - len(correct_answers),
+        }
+
 
 
 class Theme(db.Model):
