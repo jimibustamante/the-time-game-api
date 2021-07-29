@@ -69,12 +69,19 @@ def validate_token():
         return make_response(jsonify(response)), 403
 
 
+@api.route('/')
+def index():
+    print(request.json)
+
+    return 'Hello, World!'
+
+
 @api.route('/api/sign-in', methods=['POST'])
 def sign_in():
     """
     Sign in user route. If everything is ok, returns a json with the user and an access token.
     """
-
+    print(request.json)
     params = request.get_json()
     uid = params['uid']
     username = params['username']
@@ -247,4 +254,3 @@ def get_summary(game_id):
         except Exception as error:
             print(f'ERROR G: {error}')
             return 'Something went wrong', 500
-

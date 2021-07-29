@@ -109,6 +109,7 @@ celerybeat.pid
 
 # Environments
 .env
+.env.prod
 .venv
 env/
 venv/
@@ -145,3 +146,5 @@ app/firebaseConfig.json
 servicesAccountKey.json
 
 *.csv
+
+/data/db

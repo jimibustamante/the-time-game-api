@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    image: the-time-game-api:latest
+    restart: always
+    volumes:
+      - .:/app
+    env_file:
+      - ./.env.prod
+    ports:
+      - 5001:5000
+    depends_on:
+      - db
+    command: python3 -m flask run --host=0.0.0.0
+    environment:
+      - DATABASE_URL=postgresql://thetimegame:thetimegame@db:5432/thetimegame
+
+  db:
+    image: postgres:13-alpine
+    volumes:
+      - ./data/db:/appdb
+    ports:
+      - 5433:5432
+    restart: always
+    environment:
+      - POSTGRES_USER=thetimegame
+      - POSTGRES_PASSWORD=thetimegame
+      - POSTGRES_DB=thetimegame
+      - PGDATA=/appdb
