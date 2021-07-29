@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 import psycopg2
 
 basedir = path.abspath(path.dirname(__file__))
-load_dotenv(path.join(basedir, '../.env'))
+load_dotenv(path.join(basedir, '../.env.prod'))
 
 database_name = environ.get('DATABASE_NAME')
 database_user = environ.get('DATABASE_USER')

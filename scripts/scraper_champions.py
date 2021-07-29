@@ -5,7 +5,7 @@ import requests
 import lxml.html as html
 
 basedir = path.abspath(path.dirname(__file__))
-load_dotenv(path.join(basedir, '../.env'))
+load_dotenv(path.join(basedir, '../.env.prod'))
 
 database_name = environ.get('DATABASE_NAME')
 database_user = environ.get('DATABASE_USER')
