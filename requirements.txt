@@ -67,5 +67,6 @@ SQLAlchemy==1.4.22
 sseclient==0.0.27
 uritemplate==3.0.1
 urllib3==1.26.5
+uWSGI==2.0.19.1
 Werkzeug==1.0.1
 wrapt==1.12.1

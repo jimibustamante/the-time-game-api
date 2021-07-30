@@ -12,14 +12,12 @@ class Config:
     FLASK_ENV = 'development'
     FLASK_APP = 'app'
     DATABASE_URI = environ.get('DATABASE_URI')
-    # DATABASE_URI = 'db'
     DATABASE_USER = environ.get('DATABASE_PASSWORD')
     DATABASE_NAME = environ.get('DATABASE_NAME')
     DATABASE_PORT = environ.get('DATABASE_PORT')
     DATABASE_USER = environ.get('DATABASE_USER')
     
     SQLALCHEMY_DATABASE_URI = environ.get('SQLALCHEMY_DATABASE_URI')
-    # print(f'SQLALCHEMY_DATABASE_URI: {SQLALCHEMY_DATABASE_URI}')
 
 class ProdConfig(Config):
     FLASK_ENV = 'production'
