@@ -145,6 +145,4 @@ app/.DS_Store
 app/firebaseConfig.json
 servicesAccountKey.json
 
-*.csv
-
 /data/db
