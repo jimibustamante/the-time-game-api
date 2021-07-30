@@ -35,3 +35,4 @@ services:
       - app
     ports:
       - 80:80
+      - 443:443
