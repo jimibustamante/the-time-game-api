@@ -36,3 +36,32 @@ DATABASE_USER={database_user_name}
 ```
 flask run
 ```
+
+## Production
+
+There's a `docker-compose.prod.yml` file that will run the server in production mode, which also consumes `.env.prod`. This file is not in the repository.
+
+# SSL Certificate
+
+In order to use the api in real wolrd you need to generate a SSL certificate. The easiest way to do this is using the [Let's Encrypt](https://letsencrypt.org/) service that is provided by [Certbot](https://certbot.eff.org/).
+
+To do this, you need to have a domain name that points to the server and get into the ngnix container like this:
+
+```
+docker exec -it <nginx_container_name> bash
+```
+
+Once inside the container, you need to install the certbot package:
+
+```
+apt-get update
+apt-get install python-certbot-nginx certbot
+```
+
+Then run the following command:
+
+```
+certbot --nginx
+```
+
+And follow the instructions.
